@@ -1,0 +1,118 @@
+!pip install chess
+!pip install chess.engine
+
+
+import chess
+import chess.engine
+import math
+
+# A basic evaluation function based on material values of pieces
+def evaluate_board(board):
+    # Assign material values to pieces
+    piece_values = {
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
+        chess.KING: 0  # King is invaluable
+    }
+
+    # Evaluate the board
+    evaluation = 0
+    for piece in board.piece_map().values():
+        if piece.color == chess.WHITE:
+            evaluation += piece_values[piece.piece_type]
+        else:
+            evaluation -= piece_values[piece.piece_type]
+    
+    return evaluation
+
+# Minimax algorithm with alpha-beta pruning
+def minimax(board, depth, alpha, beta, is_maximizing_player):
+    if depth == 0 or board.is_game_over():
+        return evaluate_board(board)
+
+    legal_moves = list(board.legal_moves)
+
+    if is_maximizing_player:
+        max_eval = -math.inf
+        for move in legal_moves:
+            board.push(move)
+            eval = minimax(board, depth - 1, alpha, beta, False)
+            board.pop()
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+                break
+        return max_eval
+    else:
+        min_eval = math.inf
+        for move in legal_moves:
+            board.push(move)
+            eval = minimax(board, depth - 1, alpha, beta, True)
+            board.pop()
+            min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break
+        return min_eval
+
+# Find the best move using the minimax algorithm
+def find_best_move(board, depth):
+    best_move = None
+    best_value = -math.inf
+    alpha = -math.inf
+    beta = math.inf
+
+    for move in board.legal_moves:
+        board.push(move)
+        board_value = minimax(board, depth - 1, alpha, beta, False)
+        board.pop()
+
+        if board_value > best_value:
+            best_value = board_value
+            best_move = move
+
+    return best_move
+
+# Play against the AI
+def play_game():
+    board = chess.Board()
+
+    print("Welcome to Chess AI! You are playing as White.")
+    
+    while not board.is_game_over():
+        print(board)
+
+        if board.turn == chess.WHITE:
+            # Human's turn
+            move = input("Enter your move (in UCI format, e.g., e2e4): ")
+            try:
+                board.push_uci(move)
+            except:
+                print("Invalid move! Try again.")
+                continue
+        else:
+            # AI's turn (Black)
+            print("AI is thinking...")
+            best_move = find_best_move(board, depth=3)  # Depth 3 for medium strength
+            board.push(best_move)
+            print(f"AI played: {best_move}")
+
+    print(board)
+    print("Game Over!")
+    if board.is_checkmate():
+        if board.turn == chess.WHITE:
+            print("You won!")
+        else:
+            print("AI won!")
+    elif board.is_stalemate():
+        print("It's a stalemate!")
+    elif board.is_insufficient_material():
+        print("Draw due to insufficient material!")
+    else:
+        print("Draw!")
+
+# Uncomment the following to play the game:
+play_game()
